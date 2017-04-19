@@ -1,0 +1,225 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+        href="https://github.com/yeoman/stringify-object#readme"
+
+    >stringify-object (v3.2.0)</a>
+</h1>
+<h4>Stringify an object/array like JSON.stringify just without all the double-quotes</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.stringify-object">module stringify-object</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.stringify-object.stringify-object">
+            function <span class="apidocSignatureSpan"></span>stringify-object
+            <span class="apidocSignatureSpan">(val, opts, pad)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.stringify-object" id="apidoc.module.stringify-object">module stringify-object</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.stringify-object.stringify-object" id="apidoc.element.stringify-object.stringify-object">
+        function <span class="apidocSignatureSpan"></span>stringify-object
+        <span class="apidocSignatureSpan">(val, opts, pad)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">(val, opts, pad) =&#x3e; {
+	const seen = [];
+
+	return (function stringify(val, opts, pad) {
+		opts = opts || {};
+		opts.indent = opts.indent || &#x27;\t&#x27;;
+		pad = pad || &#x27;&#x27;;
+
+		let tokens;
+
+		if (opts.inlineCharacterLimit === undefined) {
+			tokens = {
+				newLine: &#x27;\n&#x27;,
+				newLineOrSpace: &#x27;\n&#x27;,
+				pad,
+				indent: pad + opts.indent
+			};
+		} else {
+			tokens = {
+				newLine: &#x27;@@__STRINGIFY_OBJECT_NEW_LINE__@@&#x27;,
+				newLineOrSpace: &#x27;@@__STRINGIFY_OBJECT_NEW_LINE_OR_SPACE__@@&#x27;,
+				pad: &#x27;@@__STRINGIFY_OBJECT_PAD__@@&#x27;,
+				indent: &#x27;@@__STRINGIFY_OBJECT_INDENT__@@&#x27;
+			};
+		}
+
+		const expandWhiteSpace = string =&#x3e; {
+			if (opts.inlineCharacterLimit === undefined) {
+				return string;
+			}
+
+			const oneLined = string
+				.replace(new RegExp(tokens.newLine, &#x27;g&#x27;), &#x27;&#x27;)
+				.replace(new RegExp(tokens.newLineOrSpace, &#x27;g&#x27;), &#x27; &#x27;)
+				.replace(new RegExp(tokens.pad + &#x27;|&#x27; + tokens.indent, &#x27;g&#x27;), &#x27;&#x27;);
+
+			if (oneLined.length &#x3c;= opts.inlineCharacterLimit) {
+				return oneLined;
+			}
+
+			return string
+				.replace(new RegExp(tokens.newLine + &#x27;|&#x27; + tokens.newLineOrSpace, &#x27;g&#x27;), &#x27;\n&#x27;)
+				.replace(new RegExp(tokens.pad, &#x27;g&#x27;), pad)
+				.replace(new RegExp(tokens.indent, &#x27;g&#x27;), pad + opts.indent);
+		};
+
+		if (seen.indexOf(val) !== -1) {
+			return &#x27;&#x22;[Circular]&#x22;&#x27;;
+		}
+
+		if (val === null ||
+			val === undefined ||
+			typeof val === &#x27;number&#x27; ||
+			typeof val === &#x27;boolean&#x27; ||
+			typeof val === &#x27;function&#x27; ||
+			typeof val === &#x27;symbol&#x27; ||
+			isRegexp(val)) {
+			return String(val);
+		}
+
+		if (val instanceof Date) {
+			return `new Date(&#x27;${val.toISOString()}&#x27;)`;
+		}
+
+		if (Array.isArray(val)) {
+			if (val.length === 0) {
+				return &#x27;[]&#x27;;
+			}
+
+			seen.push(val);
+
+			const ret = &#x27;[&#x27; + tokens.newLine + val.map((el, i) =&#x3e; {
+				const eol = val.length - 1 === i ? tokens.newLine : &#x27;,&#x27; + tokens.newLineOrSpace;
+				let value = stringify(el, opts, pad + opts.indent);
+				if (opts.transform) {
+					value = opts.transform(val, i, value);
+				}
+				return tokens.indent + value + eol;
+			}).join(&#x27;&#x27;) + tokens.pad + &#x27;]&#x27;;
+
+			seen.pop(val);
+
+			return expandWhiteSpace(ret);
+		}
+
+		if (isObj(val)) {
+			const objKeys = Object.keys(val).concat(getOwnEnumPropSymbols(val));
+
+			if (objKeys.length === 0) {
+				return &#x27;{}&#x27;;
+			}
+
+			seen.push(val);
+
+			const ret = &#x27;{&#x27; + tokens.newLine + objKeys.map((el, i) =&#x3e; {
+				if (opts.filter &#x26;&#x26; !opts.filter(val, el)) {
+					return &#x27;&#x27;;
+				}
+
+				const eol = objKeys.length - 1 === i ? tokens.newLine : &#x27;,&#x27; + tokens.newLineOrSpace;
+				const isSymbol = typeof el === &#x27;symbol&#x27;;
+				const isClassic = !isSymbol &#x26;&#x26; /^[a-z$_][a-z$_0-9]*$/i.test(el);
+				const key = isSymbol || isClassic ? el : stringify(el, opts);
+				let value = stringify(val[el], opts, pad + opts.indent);
+				if (opts.transform) {
+					value = opts.transform(val, el, value);
+				}
+				return tokens.indent + String(key) + &#x27;: &#x27; + value + eol;
+			}).join(&#x27;&#x27;) + tokens.pad + &#x27;}&#x27;;
+
+			seen.pop(val);
+
+			return expandWhiteSpace(ret);
+		}
+
+		val = String(val).replace(/[\r\n]/g, x =&#x3e; x === &#x27;\n&#x27; ? &#x27;\\n&#x27; : &#x27;\\r&#x27;);
+
+		if (opts.singleQuotes === false) {
+			val = val.replace(/&#x22;/g, &#x27;\\&#x22;&#x27;);
+			return `&#x22;${val}&#x22;`;
+		}
+
+		val = val.replace(/\\?&#x27;/g, &#x27;\\\&#x27;&#x27;);
+		return `&#x27;${val}&#x27;`;
+	})(val, opts, pad);
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>

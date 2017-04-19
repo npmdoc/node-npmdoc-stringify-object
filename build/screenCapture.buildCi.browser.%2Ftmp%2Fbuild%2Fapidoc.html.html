@@ -1,0 +1,219 @@
+<html><head></head><body><div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a href="https://github.com/yeoman/stringify-object#readme">stringify-object (v3.2.0)</a>
+</h1>
+<h4>Stringify an object/array like JSON.stringify just without all the double-quotes</h4>
+<div class="apidocSectionDiv"><a href="#apidoc.tableOfContents" id="apidoc.tableOfContents"><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.stringify-object">module stringify-object</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.stringify-object.stringify-object">
+            function <span class="apidocSignatureSpan"></span>stringify-object
+            <span class="apidocSignatureSpan">(val, opts, pad)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.stringify-object" id="apidoc.module.stringify-object">module stringify-object</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.stringify-object.stringify-object" id="apidoc.element.stringify-object.stringify-object">
+        function <span class="apidocSignatureSpan"></span>stringify-object
+        <span class="apidocSignatureSpan">(val, opts, pad)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">(val, opts, pad) =&gt; {
+	const seen = [];
+
+	return (function stringify(val, opts, pad) {
+		opts = opts || {};
+		opts.indent = opts.indent || '\t';
+		pad = pad || '';
+
+		let tokens;
+
+		if (opts.inlineCharacterLimit === undefined) {
+			tokens = {
+				newLine: '\n',
+				newLineOrSpace: '\n',
+				pad,
+				indent: pad + opts.indent
+			};
+		} else {
+			tokens = {
+				newLine: '@@__STRINGIFY_OBJECT_NEW_LINE__@@',
+				newLineOrSpace: '@@__STRINGIFY_OBJECT_NEW_LINE_OR_SPACE__@@',
+				pad: '@@__STRINGIFY_OBJECT_PAD__@@',
+				indent: '@@__STRINGIFY_OBJECT_INDENT__@@'
+			};
+		}
+
+		const expandWhiteSpace = string =&gt; {
+			if (opts.inlineCharacterLimit === undefined) {
+				return string;
+			}
+
+			const oneLined = string
+				.replace(new RegExp(tokens.newLine, 'g'), '')
+				.replace(new RegExp(tokens.newLineOrSpace, 'g'), ' ')
+				.replace(new RegExp(tokens.pad + '|' + tokens.indent, 'g'), '');
+
+			if (oneLined.length &lt;= opts.inlineCharacterLimit) {
+				return oneLined;
+			}
+
+			return string
+				.replace(new RegExp(tokens.newLine + '|' + tokens.newLineOrSpace, 'g'), '\n')
+				.replace(new RegExp(tokens.pad, 'g'), pad)
+				.replace(new RegExp(tokens.indent, 'g'), pad + opts.indent);
+		};
+
+		if (seen.indexOf(val) !== -1) {
+			return '"[Circular]"';
+		}
+
+		if (val === null ||
+			val === undefined ||
+			typeof val === 'number' ||
+			typeof val === 'boolean' ||
+			typeof val === 'function' ||
+			typeof val === 'symbol' ||
+			isRegexp(val)) {
+			return String(val);
+		}
+
+		if (val instanceof Date) {
+			return `new Date('${val.toISOString()}')`;
+		}
+
+		if (Array.isArray(val)) {
+			if (val.length === 0) {
+				return '[]';
+			}
+
+			seen.push(val);
+
+			const ret = '[' + tokens.newLine + val.map((el, i) =&gt; {
+				const eol = val.length - 1 === i ? tokens.newLine : ',' + tokens.newLineOrSpace;
+				let value = stringify(el, opts, pad + opts.indent);
+				if (opts.transform) {
+					value = opts.transform(val, i, value);
+				}
+				return tokens.indent + value + eol;
+			}).join('') + tokens.pad + ']';
+
+			seen.pop(val);
+
+			return expandWhiteSpace(ret);
+		}
+
+		if (isObj(val)) {
+			const objKeys = Object.keys(val).concat(getOwnEnumPropSymbols(val));
+
+			if (objKeys.length === 0) {
+				return '{}';
+			}
+
+			seen.push(val);
+
+			const ret = '{' + tokens.newLine + objKeys.map((el, i) =&gt; {
+				if (opts.filter &amp;&amp; !opts.filter(val, el)) {
+					return '';
+				}
+
+				const eol = objKeys.length - 1 === i ? tokens.newLine : ',' + tokens.newLineOrSpace;
+				const isSymbol = typeof el === 'symbol';
+				const isClassic = !isSymbol &amp;&amp; /^[a-z$_][a-z$_0-9]*$/i.test(el);
+				const key = isSymbol || isClassic ? el : stringify(el, opts);
+				let value = stringify(val[el], opts, pad + opts.indent);
+				if (opts.transform) {
+					value = opts.transform(val, el, value);
+				}
+				return tokens.indent + String(key) + ': ' + value + eol;
+			}).join('') + tokens.pad + '}';
+
+			seen.pop(val);
+
+			return expandWhiteSpace(ret);
+		}
+
+		val = String(val).replace(/[\r\n]/g, x =&gt; x === '\n' ? '\\n' : '\\r');
+
+		if (opts.singleQuotes === false) {
+			val = val.replace(/"/g, '\\"');
+			return `"${val}"`;
+		}
+
+		val = val.replace(/\\?'/g, '\\\'');
+		return `'${val}'`;
+	})(val, opts, pad);
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
+</body></html>
